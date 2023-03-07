@@ -134,7 +134,6 @@ class _BottomDrawerState extends State<BottomDrawer> {
 
   void _onDragStart(DragStartDetails details) {
     moveState = moveState.nextRunningState;
-
     animation = false;
     rebuild();
   }
