@@ -1,5 +1,7 @@
 library flutter_bottom_drawer;
 
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bottom_drawer/src/measure_util.dart';
 
@@ -18,7 +20,7 @@ class BottomDrawer extends StatefulWidget {
 
   final Widget Function(
       double height,
-      BottomDrawerState state,
+      DrawerState state,
       void Function(bool open) move,
       void Function(void Function()) setState) builder;
 
@@ -48,7 +50,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
   double nowHeight = 0, minHeight = 0;
   bool animation = true;
 
-  BottomDrawerState moveState = BottomDrawerState.noHeight;
+  DrawerState moveState = DrawerState.noHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -67,14 +69,14 @@ class _BottomDrawerState extends State<BottomDrawer> {
   void _setHeight() {
     minHeight = widget.height ?? _measureDrawerHeight();
     nowHeight = minHeight;
-    moveState = BottomDrawerState.closed;
+    moveState = DrawerState.closed;
   }
 
   double _measureDrawerHeight() {
     func1(bool b) {}
     func2(void Function() f) {}
     return measureWidgetHeight(
-            widget.builder(0, BottomDrawerState.noHeight, func1, func2),
+            widget.builder(0, DrawerState.noHeight, func1, func2),
             context: context) +
         widget.handleSectionHeight;
   }
@@ -83,6 +85,9 @@ class _BottomDrawerState extends State<BottomDrawer> {
 
   Widget _makePositionedGestureDetector() {
     final gestureDetector = GestureDetector(
+      onTap: () {
+        /* ignore event */
+      },
       onVerticalDragStart: _onDragStart,
       onVerticalDragEnd: _onDragEnd,
       onVerticalDragUpdate: _onDrag,
@@ -128,11 +133,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
   /* ----- Events ----- */
 
   void _onDragStart(DragStartDetails details) {
-    if (moveState == BottomDrawerState.closed) {
-      moveState = BottomDrawerState.opening;
-    } else {
-      moveState = BottomDrawerState.closing;
-    }
+    moveState = moveState.nextRunningState;
 
     animation = false;
     rebuild();
@@ -147,39 +148,51 @@ class _BottomDrawerState extends State<BottomDrawer> {
     }
   }
 
+  bool? willOpen;
+
   void _onDragEnd(DragEndDetails details) {
     final dragDirection = _checkDragDirection(details);
 
-    final open = dragDirection == _Direction.up;
-    nowHeight = getExpectHeight(open);
-    moveState = open ? BottomDrawerState.opened : BottomDrawerState.closed;
+    if (dragDirection == _Direction.none) {
+      willOpen = moveState == DrawerState.closing;
+    } else {
+      willOpen = dragDirection == _Direction.up;
+    }
+
+    nowHeight = getExpectHeight(willOpen!);
     animation = true;
 
     rebuild();
   }
 
-  /// animation end called.
-  void _onAnimationEnd() {}
-
-  double getExpectHeight(bool open) {
-    if (open) {
-      return widget.expandedHeight;
-    } else {
-      return minHeight;
+  void _onAnimationEnd() {
+    if (moveWithControlMethod) {
+      moveState = moveState.nextFinishState;
+      moveWithControlMethod = false;
+      rebuild();
+    } else if (willOpen != null) {
+      moveState = DrawerState.getFinishState(willOpen!);
+      willOpen = null;
+      _runAfterBuild(() => rebuild());
     }
   }
 
+  double getExpectHeight(bool open) => open ? widget.expandedHeight : minHeight;
+
   /* ----- control methods ----- */
+
+  bool moveWithControlMethod = false;
 
   void _move(bool open) {
     animation = true;
     nowHeight = getExpectHeight(open);
-    moveState = open ? BottomDrawerState.opening : BottomDrawerState.closing;
+    moveState = DrawerState.getRunningState(open);
+    moveWithControlMethod = true;
     rebuild();
   }
 
   void _setState(void Function() func) {
-    if (widget.height == null) moveState = BottomDrawerState.noHeight;
+    if (widget.height == null) moveState = DrawerState.noHeight;
     func.call();
     rebuild();
   }
@@ -199,7 +212,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
   void rebuild() => setState(() {});
 }
 
-enum BottomDrawerState {
+enum DrawerState {
   noHeight,
   opened,
   closed,
@@ -207,11 +220,37 @@ enum BottomDrawerState {
   closing;
 
   bool get canExpanded =>
-      this == BottomDrawerState.opened ||
-      this == BottomDrawerState.opening ||
-      this == BottomDrawerState.closing;
+      this == DrawerState.opened ||
+      this == DrawerState.opening ||
+      this == DrawerState.closing;
 
-  bool get _needHeightUpdate => this == BottomDrawerState.noHeight;
+  bool get isRunning =>
+      this == DrawerState.opening || this == DrawerState.closing;
+
+  bool get isFinished =>
+      this == DrawerState.opened || this == DrawerState.closed;
+
+  bool get _needHeightUpdate => this == DrawerState.noHeight;
+
+  DrawerState get nextRunningState {
+    assert(isFinished);
+    if (this == DrawerState.closed) return DrawerState.opening;
+    return DrawerState.closing;
+  }
+
+  DrawerState get nextFinishState {
+    assert(isRunning);
+    if (this == DrawerState.opening) return DrawerState.opened;
+    return DrawerState.closed;
+  }
+
+  static DrawerState getRunningState(bool open) {
+    return open ? DrawerState.opening : DrawerState.closing;
+  }
+
+  static DrawerState getFinishState(bool open) {
+    return open ? DrawerState.opened : DrawerState.closed;
+  }
 }
 
 enum _Direction { up, down, none }

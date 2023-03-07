@@ -22,42 +22,38 @@ class ExamplePage extends StatefulWidget {
 }
 
 class _ExamplePageState extends State<ExamplePage> {
-  String nowState = 'open';
-
-  Function(bool)? moveFunc;
+  late Function(bool) moveFunc;
   double drawerHeight = 0;
+  DrawerState? drawerState;
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       body: Stack(
         children: [
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: screenHeight - drawerHeight,
-              color: Colors.blue,
-              child: Center(
-                  child: ElevatedButton(
-                      onPressed: () {
-                        if (nowState == 'close') {
-                          setState(() => nowState = 'open');
-                          moveFunc?.call(false);
-                        } else if (nowState == 'open') {
-                          setState(() => nowState = 'close');
-                          moveFunc?.call(true);
-                        }
-                      },
-                      child: Text(nowState))),
-            ),
-          ),
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: drawerHeight,
+              child: Scaffold(
+                backgroundColor: Colors.grey,
+                floatingActionButton: FloatingActionButton(
+                  onPressed: bottomDrawerMove,
+                  child: drawerState != DrawerState.opened
+                      ? const Icon(Icons.arrow_upward)
+                      : const Icon(Icons.arrow_downward),
+                ),
+              )),
           _bottomDrawer(),
         ],
       ),
     );
+  }
+
+  void bottomDrawerMove() {
+    moveFunc.call(drawerState != DrawerState.opened);
+    setState(() {});
   }
 
   bool expanded = false;
@@ -66,7 +62,16 @@ class _ExamplePageState extends State<ExamplePage> {
     return BottomDrawer(
         expandedHeight: 500,
         builder: (height, state, move, setStateOnDrawer) {
+          print("state: $state, height: $height");
+
           moveFunc = move;
+
+          if (drawerState != state) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              setState(() => drawerState = state);
+            });
+          }
+
           if (drawerHeight != height) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               setState(() => drawerHeight = height);
