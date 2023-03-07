@@ -2,7 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bottom_drawer/flutter_bottom_drawer.dart';
 
 void main() {
-  runApp(const ExamplePage());
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(home: ExamplePage());
+  }
 }
 
 class ExamplePage extends StatefulWidget {
@@ -15,47 +24,64 @@ class ExamplePage extends StatefulWidget {
 class _ExamplePageState extends State<ExamplePage> {
   String nowState = 'open';
 
-  Function(bool)? openFunc;
+  Function(bool)? moveFunc;
+  double drawerHeight = 0;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Stack(
-          children: [
-            Center(
-                child: ElevatedButton(
-                    onPressed: () {
-                      if (nowState == 'close') {
-                        setState(() {
-                          nowState = 'open';
-                        });
-                        openFunc?.call(false);
-                      } else if (nowState == 'open') {
-                        setState(() {
-                          nowState = 'close';
-                        });
-                        openFunc?.call(true);
-                      }
-                    },
-                    child: Text(nowState))),
-            _bottomDrawer(),
-          ],
-        ),
+    final screenHeight = MediaQuery.of(context).size.height;
+    return Scaffold(
+      body: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: screenHeight - drawerHeight,
+              color: Colors.blue,
+              child: Center(
+                  child: ElevatedButton(
+                      onPressed: () {
+                        if (nowState == 'close') {
+                          setState(() => nowState = 'open');
+                          moveFunc?.call(false);
+                        } else if (nowState == 'open') {
+                          setState(() => nowState = 'close');
+                          moveFunc?.call(true);
+                        }
+                      },
+                      child: Text(nowState))),
+            ),
+          ),
+          _bottomDrawer(),
+        ],
       ),
     );
   }
 
+  bool expanded = false;
+
   Widget _bottomDrawer() {
     return BottomDrawer(
-        expandedHeight: 200,
-        height: 100,
-        resizingAnimation: false, // todo : fix
-        resizeAnimationDuration: const Duration(milliseconds: 300),
-        builder: (nowHeight, state, open, setState) {
-          openFunc = open;
-          print("state: $state, nowHeight: $nowHeight");
-          return FlutterLogo(size: nowHeight);
+        expandedHeight: 500,
+        builder: (height, state, move, setStateOnDrawer) {
+          moveFunc = move;
+          if (drawerHeight != height) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              setState(() => drawerHeight = height);
+            });
+          }
+
+          return Container(
+            color: Colors.red,
+            height: expanded ? 200 : 100,
+            child: Center(
+              child: ElevatedButton(
+                  onPressed: () => setStateOnDrawer(() => expanded = !expanded),
+                  child: Text(expanded ? 'flip' : 'expand')),
+            ),
+          );
         });
   }
 }

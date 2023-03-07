@@ -1,6 +1,7 @@
 library flutter_bottom_drawer;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bottom_drawer/src/measure_util.dart';
 
 class BottomDrawer extends StatefulWidget {
   final double? height;
@@ -11,13 +12,14 @@ class BottomDrawer extends StatefulWidget {
   final double handleSectionHeight;
   final Size handleSize;
   final double radius;
-  final bool resizingAnimation;
+
+  final bool autoResizingAnimation;
   final Duration resizeAnimationDuration;
 
   final Widget Function(
-      double nowBodyHeight,
+      double height,
       BottomDrawerState state,
-      void Function(bool open) open,
+      void Function(bool open) move,
       void Function(void Function()) setState) builder;
 
   const BottomDrawer({
@@ -30,7 +32,7 @@ class BottomDrawer extends StatefulWidget {
     this.handleSectionHeight = 28,
     this.handleSize = const Size(40, 4),
     this.radius = 8,
-    this.resizingAnimation = true,
+    this.autoResizingAnimation = false,
     this.resizeAnimationDuration = const Duration(milliseconds: 300),
     required this.builder,
   }) : super(key: key);
@@ -43,52 +45,38 @@ class BottomDrawer extends StatefulWidget {
 }
 
 class _BottomDrawerState extends State<BottomDrawer> {
-  final handleKey = GlobalKey();
-  final containerKey = GlobalKey();
-
-  double nowHeight = 0;
-  bool animation = true, opened = false;
-
-  /// minHeight 가 null 인 경우 : 위젯의 높이를 자동으로 측정하여 설정
-  double? minHeight;
-
-  double? autoDetectedHeight;
+  double nowHeight = 0, minHeight = 0;
+  bool animation = true;
 
   BottomDrawerState moveState = BottomDrawerState.noHeight;
 
   @override
   Widget build(BuildContext context) {
-    minHeight = widget.height ?? autoDetectedHeight;
+    if (moveState._needHeightUpdate) {
+      _setHeight();
 
-    if (nowHeight == 0 && minHeight != null) {
-      nowHeight = minHeight!;
-      moveState = BottomDrawerState.closed;
-    } else if (moveState == BottomDrawerState.noHeight && minHeight != null) {
-      if (!widget.resizingAnimation) animation = false;
-      nowHeight = minHeight!;
-      _runAfterBuild(() => animation = true);
-    }
-
-    if (moveState == BottomDrawerState.closed ||
-        moveState == BottomDrawerState.noHeight) {
-      _runAfterBuild(() {
-        final expandedHeight = _measureWidgetSize(containerKey).height;
-        final h = widget.handleSectionHeight + expandedHeight;
-
-        if (autoDetectedHeight != h) {
-          setState(() {
-            autoDetectedHeight = h;
-            _runAfterBuild(() {
-              setState(() => moveState = BottomDrawerState.closed);
-            });
-          });
-        } else {
-          moveState = BottomDrawerState.closed;
-        }
-      });
+      if (!widget.autoResizingAnimation) {
+        animation = false;
+        _runAfterBuild(() => animation = true);
+      }
     }
 
     return _makePositionedGestureDetector();
+  }
+
+  void _setHeight() {
+    minHeight = widget.height ?? _measureDrawerHeight();
+    nowHeight = minHeight;
+    moveState = BottomDrawerState.closed;
+  }
+
+  double _measureDrawerHeight() {
+    func1(bool b) {}
+    func2(void Function() f) {}
+    return measureWidgetHeight(
+            widget.builder(0, BottomDrawerState.noHeight, func1, func2),
+            context: context) +
+        widget.handleSectionHeight;
   }
 
   /* ----- widget maker ----- */
@@ -116,12 +104,12 @@ class _BottomDrawerState extends State<BottomDrawer> {
       duration: animation ? widget.resizeAnimationDuration : Duration.zero,
       curve: Curves.ease,
       decoration: decoration,
+      onEnd: _onAnimationEnd,
       child: Column(children: [_makeHandleSection(), _makeBodySection()]),
     );
   }
 
   Widget _makeHandleSection() => Container(
-      key: handleKey,
       width: double.infinity,
       height: widget.handleSectionHeight,
       alignment: Alignment.center,
@@ -134,101 +122,96 @@ class _BottomDrawerState extends State<BottomDrawer> {
       ));
 
   Widget _makeBodySection() => Expanded(
-      key: containerKey,
       flex: moveState.canExpanded ? 1 : 0,
-      child: widget.builder(
-          nowHeight - widget.handleSectionHeight, moveState, _open, _setState));
+      child: widget.builder(nowHeight, moveState, _move, _setState));
 
-  /* ----- Drag Events ----- */
+  /* ----- Events ----- */
 
   void _onDragStart(DragStartDetails details) {
+    if (moveState == BottomDrawerState.closed) {
+      moveState = BottomDrawerState.opening;
+    } else {
+      moveState = BottomDrawerState.closing;
+    }
+
     animation = false;
-    moveState = BottomDrawerState.moving;
+    rebuild();
   }
 
   void _onDrag(DragUpdateDetails details) {
     final requestHeight = nowHeight - details.delta.dy;
 
-    if (minHeight! <= requestHeight && requestHeight <= widget.expandedHeight) {
-      setState(() => nowHeight = requestHeight);
+    if (minHeight <= requestHeight && requestHeight <= widget.expandedHeight) {
+      nowHeight = requestHeight;
+      rebuild();
     }
   }
 
   void _onDragEnd(DragEndDetails details) {
-    animation = true;
     final dragDirection = _checkDragDirection(details);
 
-    switch (dragDirection) {
-      case _Direction.up:
-        opened = true;
-        nowHeight = widget.expandedHeight;
-        break;
-      case _Direction.down:
-        opened = false;
-        nowHeight = minHeight!;
-        break;
+    final open = dragDirection == _Direction.up;
+    nowHeight = getExpectHeight(open);
+    moveState = open ? BottomDrawerState.opened : BottomDrawerState.closed;
+    animation = true;
+
+    rebuild();
+  }
+
+  /// animation end called.
+  void _onAnimationEnd() {}
+
+  double getExpectHeight(bool open) {
+    if (open) {
+      return widget.expandedHeight;
+    } else {
+      return minHeight;
     }
-
-    setState(() {});
-
-    Future.delayed(widget.resizeAnimationDuration, () {
-      setState(() {
-        // todo : remove timeBased event sending
-        moveState =
-            opened ? BottomDrawerState.opened : BottomDrawerState.closed;
-      });
-    });
   }
 
   /* ----- control methods ----- */
 
-  void _setState(void Function() func) {
-    setState(() {
-      if (widget.height == null) moveState = BottomDrawerState.noHeight;
-      func.call();
-    });
+  void _move(bool open) {
+    animation = true;
+    nowHeight = getExpectHeight(open);
+    moveState = open ? BottomDrawerState.opening : BottomDrawerState.closing;
+    rebuild();
   }
 
-  void _open(bool open) {
-    final height = open ? widget.expandedHeight : minHeight!;
-    moveState = BottomDrawerState.moving;
-    setState(() => nowHeight = height);
-    Future.delayed(
-        widget.resizeAnimationDuration,
-        () => setState(() {
-              moveState =
-                  open ? BottomDrawerState.opened : BottomDrawerState.closed;
-              if (widget.height == null && !open) {
-                moveState = BottomDrawerState.noHeight;
-              }
-            }));
+  void _setState(void Function() func) {
+    if (widget.height == null) moveState = BottomDrawerState.noHeight;
+    func.call();
+    rebuild();
   }
 
   /* ----- utils ----- */
 
   static _Direction _checkDragDirection(DragEndDetails details) {
     final velocity = details.velocity.pixelsPerSecond;
+    if (velocity.dy == 0) return _Direction.none;
     return velocity.dy < 0 ? _Direction.up : _Direction.down;
-  }
-
-  static Size _measureWidgetSize(GlobalKey key) {
-    final renderBox = key.currentContext!.findRenderObject() as RenderBox;
-    return renderBox.size;
   }
 
   static void _runAfterBuild(Function() callback) {
     WidgetsBinding.instance.addPostFrameCallback((_) => callback());
   }
+
+  void rebuild() => setState(() {});
 }
 
 enum BottomDrawerState {
   noHeight,
   opened,
   closed,
-  moving;
+  opening,
+  closing;
 
   bool get canExpanded =>
-      this != BottomDrawerState.noHeight && this != BottomDrawerState.closed;
+      this == BottomDrawerState.opened ||
+      this == BottomDrawerState.opening ||
+      this == BottomDrawerState.closing;
+
+  bool get _needHeightUpdate => this == BottomDrawerState.noHeight;
 }
 
-enum _Direction { up, down }
+enum _Direction { up, down, none }
