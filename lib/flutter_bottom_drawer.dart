@@ -233,7 +233,6 @@ enum DrawerState {
   bool get _needHeightUpdate => this == DrawerState.noHeight;
 
   DrawerState get nextRunningState {
-    assert(isFinished);
     if (this == DrawerState.closed) return DrawerState.opening;
     return DrawerState.closing;
   }
