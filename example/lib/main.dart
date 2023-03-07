@@ -28,28 +28,36 @@ class _ExamplePageState extends State<ExamplePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: drawerHeight,
-              child: Scaffold(
-                backgroundColor: Colors.grey,
-                floatingActionButton: FloatingActionButton(
-                  onPressed: bottomDrawerMove,
-                  child: drawerState != DrawerState.opened
-                      ? const Icon(Icons.arrow_upward)
-                      : const Icon(Icons.arrow_downward),
-                ),
-              )),
-          _bottomDrawer(),
-        ],
-      ),
-    );
+    return Stack(children: [
+      Positioned.fill(child: _mainSection()),
+      _bottomDrawer(),
+    ]);
   }
+
+  Widget _mainSection() => Scaffold(
+      backgroundColor: Colors.grey,
+      body: Stack(children: [
+        Positioned.fill(bottom: drawerHeight, child: _contents()),
+        _fab(bottomMargin: 16 + drawerHeight),
+      ]));
+
+  Widget _contents() => ListView.builder(
+        itemCount: 100,
+        itemBuilder: (context, index) => ListTile(
+          title: Text('item $index'),
+        ),
+      );
+
+  Widget _fab({double rightMargin = 16, double bottomMargin = 16}) =>
+      Positioned(
+          right: rightMargin,
+          bottom: bottomMargin,
+          child: FloatingActionButton(
+            onPressed: bottomDrawerMove,
+            child: drawerState != DrawerState.opened
+                ? const Icon(Icons.arrow_upward)
+                : const Icon(Icons.arrow_downward),
+          ));
 
   void bottomDrawerMove() {
     moveFunc.call(drawerState != DrawerState.opened);
@@ -58,35 +66,31 @@ class _ExamplePageState extends State<ExamplePage> {
 
   bool expanded = false;
 
-  Widget _bottomDrawer() {
-    return BottomDrawer(
-        expandedHeight: 500,
-        builder: (height, state, move, setStateOnDrawer) {
-          print("state: $state, height: $height");
+  Widget _bottomDrawer() => BottomDrawer(
+      expandedHeight: 500,
+      builder: (height, state, move, setStateOnDrawer) {
+        moveFunc = move;
 
-          moveFunc = move;
+        if (drawerState != state) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() => drawerState = state);
+          });
+        }
 
-          if (drawerState != state) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              setState(() => drawerState = state);
-            });
-          }
+        if (drawerHeight != height) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() => drawerHeight = height);
+          });
+        }
 
-          if (drawerHeight != height) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              setState(() => drawerHeight = height);
-            });
-          }
-
-          return Container(
-            color: Colors.red,
-            height: expanded ? 200 : 100,
-            child: Center(
-              child: ElevatedButton(
-                  onPressed: () => setStateOnDrawer(() => expanded = !expanded),
-                  child: Text(expanded ? 'flip' : 'expand')),
-            ),
-          );
-        });
-  }
+        return Container(
+          color: Colors.red,
+          height: expanded ? 200 : 100,
+          child: Center(
+            child: ElevatedButton(
+                onPressed: () => setStateOnDrawer(() => expanded = !expanded),
+                child: Text(expanded ? 'flip' : 'expand')),
+          ),
+        );
+      });
 }
