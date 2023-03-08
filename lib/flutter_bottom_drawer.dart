@@ -1,7 +1,5 @@
 library flutter_bottom_drawer;
 
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bottom_drawer/src/measure_util.dart';
 

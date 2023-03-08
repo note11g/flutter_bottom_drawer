@@ -10,7 +10,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(home: ExamplePage());
+    return const MaterialApp(
+        debugShowCheckedModeBanner: false, home: ExamplePage());
   }
 }
 
@@ -25,6 +26,20 @@ class _ExamplePageState extends State<ExamplePage> {
   late Function(bool) moveFunc;
   double drawerHeight = 0;
   DrawerState? drawerState;
+  bool isDark = false;
+
+  Color get backgroundColor =>
+      isDark ? Colors.grey.shade900 : Colors.grey.shade50;
+
+  Color get textColor => isDark ? Colors.white : Colors.black;
+
+  Color get drawerHandleColor =>
+      isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+
+  Color get drawerBackgroundColor =>
+      isDark ? Colors.grey.shade800 : Colors.white;
+
+  Color get drawerShadowColor => isDark ? Colors.white24 : Colors.black26;
 
   @override
   Widget build(BuildContext context) {
@@ -35,18 +50,16 @@ class _ExamplePageState extends State<ExamplePage> {
   }
 
   Widget _mainSection() => Scaffold(
-      backgroundColor: Colors.grey,
+      backgroundColor: backgroundColor,
       body: Stack(children: [
         Positioned.fill(bottom: drawerHeight, child: _contents()),
         _fab(bottomMargin: 16 + drawerHeight),
       ]));
 
   Widget _contents() => ListView.builder(
-        itemCount: 100,
-        itemBuilder: (context, index) => ListTile(
-          title: Text('item $index'),
-        ),
-      );
+      itemCount: 100,
+      itemBuilder: (context, index) => ListTile(
+          title: Text('item $index', style: TextStyle(color: textColor))));
 
   Widget _fab({double rightMargin = 16, double bottomMargin = 16}) =>
       Positioned(
@@ -68,6 +81,12 @@ class _ExamplePageState extends State<ExamplePage> {
 
   Widget _bottomDrawer() => BottomDrawer(
       expandedHeight: 500,
+      handleColor: drawerHandleColor,
+      backgroundColor: drawerBackgroundColor,
+      shadows: [
+        BoxShadow(
+            offset: const Offset(0, 2), blurRadius: 4, color: drawerShadowColor)
+      ],
       builder: (height, state, move, setStateOnDrawer) {
         moveFunc = move;
 
@@ -83,13 +102,22 @@ class _ExamplePageState extends State<ExamplePage> {
           });
         }
 
-        return Container(
-          color: Colors.red,
+        return SizedBox(
           height: expanded ? 200 : 100,
           child: Center(
-            child: ElevatedButton(
-                onPressed: () => setStateOnDrawer(() => expanded = !expanded),
-                child: Text(expanded ? 'flip' : 'expand')),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElevatedButton(
+                    onPressed: () =>
+                        setStateOnDrawer(() => expanded = !expanded),
+                    child: Text(expanded ? 'flip' : 'expand')),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                    onPressed: () => setState(() => isDark = !isDark),
+                    child: Text(isDark ? 'lightmode' : 'darkmode')),
+              ],
+            ),
           ),
         );
       });
