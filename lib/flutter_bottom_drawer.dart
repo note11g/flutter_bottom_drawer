@@ -106,9 +106,10 @@ class _BottomDrawerState extends State<BottomDrawer> {
       height: nowHeight != 0 ? nowHeight : null,
       duration: animation ? widget.resizeAnimationDuration : Duration.zero,
       curve: Curves.ease,
-      decoration: decoration,
       onEnd: _onAnimationEnd,
-      child: Column(children: [_makeHandleSection(), _makeBodySection()]),
+      child: Container(
+          decoration: decoration,
+          child: Column(children: [_makeHandleSection(), _makeBodySection()])),
     );
   }
 
