@@ -3,6 +3,8 @@ library flutter_bottom_drawer;
 import 'package:flutter/material.dart';
 import 'package:flutter_bottom_drawer/src/measure_util.dart';
 
+part 'src/enums.dart';
+
 class BottomDrawer extends StatefulWidget {
   final double? height;
   final double expandedHeight;
@@ -16,10 +18,10 @@ class BottomDrawer extends StatefulWidget {
   final bool autoResizingAnimation;
   final Duration resizeAnimationDuration;
 
-  final Widget Function(
-      double height,
-      DrawerState state,
-      void Function(bool open) move,
+  final void Function(double height)? onHeightChanged;
+  final void Function(DrawerState state)? onStateChanged;
+
+  final Widget Function(DrawerState state, void Function(bool open) move,
       void Function(void Function()) setState) builder;
 
   const BottomDrawer({
@@ -34,6 +36,8 @@ class BottomDrawer extends StatefulWidget {
     this.radius = 8,
     this.autoResizingAnimation = false,
     this.resizeAnimationDuration = const Duration(milliseconds: 300),
+    this.onHeightChanged,
+    this.onStateChanged,
     required this.builder,
   }) : super(key: key);
 
@@ -45,20 +49,29 @@ class BottomDrawer extends StatefulWidget {
 }
 
 class _BottomDrawerState extends State<BottomDrawer> {
-  double nowHeight = 0, minHeight = 0;
+  double nowHeight = 0, minHeight = 0, lastHeight = 0;
   bool animation = true;
 
   DrawerState moveState = DrawerState.noHeight;
+  DrawerState lastMoveState = DrawerState.noHeight;
 
   @override
   Widget build(BuildContext context) {
     if (moveState._needHeightUpdate) {
       _setHeight();
-
       if (!widget.autoResizingAnimation) {
-        animation = false;
-        _runAfterBuild(() => animation = true);
+        _disableAutoResizeAnimation();
       }
+    }
+
+    if (lastMoveState != moveState) {
+      lastMoveState = moveState;
+      _notifyMoveStateChanged();
+    }
+
+    if (lastHeight != nowHeight) {
+      lastHeight = nowHeight;
+      _notifyHeightChanged();
     }
 
     return _makePositionedGestureDetector();
@@ -74,9 +87,26 @@ class _BottomDrawerState extends State<BottomDrawer> {
     func1(bool b) {}
     func2(void Function() f) {}
     return measureWidgetHeight(
-            widget.builder(0, DrawerState.noHeight, func1, func2),
+            widget.builder(DrawerState.noHeight, func1, func2),
             context: context) +
         widget.handleSectionHeight;
+  }
+
+  void _disableAutoResizeAnimation() {
+    animation = false;
+    _runAfterBuild(() => animation = true);
+  }
+
+  void _notifyMoveStateChanged() {
+    if (widget.onStateChanged != null) {
+      _runAfterBuild(() => widget.onStateChanged?.call(moveState));
+    }
+  }
+
+  void _notifyHeightChanged() {
+    if (widget.onHeightChanged != null) {
+      _runAfterBuild(() => widget.onHeightChanged?.call(nowHeight));
+    }
   }
 
   /* ----- widget maker ----- */
@@ -127,7 +157,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
 
   Widget _makeBodySection() => Expanded(
       flex: moveState.canExpanded ? 1 : 0,
-      child: widget.builder(nowHeight, moveState, _move, _setState));
+      child: widget.builder(moveState, _move, _setState));
 
   /* ----- Events ----- */
 
@@ -209,45 +239,3 @@ class _BottomDrawerState extends State<BottomDrawer> {
 
   void rebuild() => setState(() {});
 }
-
-enum DrawerState {
-  noHeight,
-  opened,
-  closed,
-  opening,
-  closing;
-
-  bool get canExpanded =>
-      this == DrawerState.opened ||
-      this == DrawerState.opening ||
-      this == DrawerState.closing;
-
-  bool get isRunning =>
-      this == DrawerState.opening || this == DrawerState.closing;
-
-  bool get isFinished =>
-      this == DrawerState.opened || this == DrawerState.closed;
-
-  bool get _needHeightUpdate => this == DrawerState.noHeight;
-
-  DrawerState get nextRunningState {
-    if (this == DrawerState.closed) return DrawerState.opening;
-    return DrawerState.closing;
-  }
-
-  DrawerState get nextFinishState {
-    assert(isRunning);
-    if (this == DrawerState.opening) return DrawerState.opened;
-    return DrawerState.closed;
-  }
-
-  static DrawerState getRunningState(bool open) {
-    return open ? DrawerState.opening : DrawerState.closing;
-  }
-
-  static DrawerState getFinishState(bool open) {
-    return open ? DrawerState.opened : DrawerState.closed;
-  }
-}
-
-enum _Direction { up, down, none }

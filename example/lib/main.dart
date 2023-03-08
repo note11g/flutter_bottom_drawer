@@ -67,9 +67,10 @@ class _ExamplePageState extends State<ExamplePage> {
           bottom: bottomMargin,
           child: FloatingActionButton(
             onPressed: bottomDrawerMove,
-            child: drawerState != DrawerState.opened
-                ? const Icon(Icons.arrow_upward)
-                : const Icon(Icons.arrow_downward),
+            child: drawerState == DrawerState.opened ||
+                    drawerState == DrawerState.closing
+                ? const Icon(Icons.arrow_downward)
+                : const Icon(Icons.arrow_upward),
           ));
 
   void bottomDrawerMove() {
@@ -85,29 +86,24 @@ class _ExamplePageState extends State<ExamplePage> {
       backgroundColor: drawerBackgroundColor,
       shadows: [
         BoxShadow(
-            offset: const Offset(0, 2), blurRadius: 4, color: drawerShadowColor)
+          offset: const Offset(0, 2),
+          blurRadius: 4,
+          color: drawerShadowColor,
+        )
       ],
-      builder: (height, state, move, setStateOnDrawer) {
+      onStateChanged: (state) {
+        setState(() => drawerState = state);
+      },
+      onHeightChanged: (height) {
+        setState(() => drawerHeight = height);
+      },
+      builder: (state, move, setStateOnDrawer) {
         moveFunc = move;
 
-        if (drawerState != state) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            setState(() => drawerState = state);
-          });
-        }
-
-        if (drawerHeight != height) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            setState(() => drawerHeight = height);
-          });
-        }
-
         return SizedBox(
-          height: expanded ? 200 : 100,
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+            height: expanded ? 200 : 100,
+            child: Center(
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
                 ElevatedButton(
                     onPressed: () =>
                         setStateOnDrawer(() => expanded = !expanded),
@@ -116,9 +112,7 @@ class _ExamplePageState extends State<ExamplePage> {
                 ElevatedButton(
                     onPressed: () => setState(() => isDark = !isDark),
                     child: Text(isDark ? 'lightmode' : 'darkmode')),
-              ],
-            ),
-          ),
-        );
+              ]),
+            ));
       });
 }
