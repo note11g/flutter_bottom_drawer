@@ -156,7 +156,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
       ));
 
   Widget _makeBodySection() => Expanded(
-      flex: moveState.canExpanded ? 1 : 0,
+      flex: moveState.canExpanded ? 1 : (widget.height != null ? 1 : 0),
       child: widget.builder(moveState, _move, _setState));
 
   /* ----- Events ----- */
