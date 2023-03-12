@@ -219,6 +219,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
       moveWithControlMethod = false;
       rebuild();
     } else if (willOpen != null) {
+      animationExecuted = false;
       _prepareNotifyEnd();
       _runAfterBuild(() => rebuild());
     }
