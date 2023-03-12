@@ -40,4 +40,12 @@ enum DrawerState {
   }
 }
 
-enum _Direction { up, down, none }
+enum _Direction {
+  up,
+  down,
+  none;
+
+  bool get isUp => this == _Direction.up;
+  bool get isDown => this == _Direction.down;
+  bool get isNone => this == _Direction.none;
+}
