@@ -101,18 +101,26 @@ class _ExamplePageState extends State<ExamplePage> {
         moveFunc = move;
 
         return SizedBox(
-            height: expanded ? 200 : 100,
+            height: expanded ? 300 : 200,
             child: Center(
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                ElevatedButton(
-                    onPressed: () =>
-                        setStateOnDrawer(() => expanded = !expanded),
-                    child: Text(expanded ? 'flip' : 'expand')),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                    onPressed: () => setState(() => isDark = !isDark),
-                    child: Text(isDark ? 'lightmode' : 'darkmode')),
-              ]),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("state: $state", style: TextStyle(color: textColor)),
+                  const SizedBox(height: 8),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    ElevatedButton(
+                        onPressed: () {
+                          setStateOnDrawer(() => expanded = !expanded);
+                        },
+                        child: Text(expanded ? 'flip' : 'expand')),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                        onPressed: () => setState(() => isDark = !isDark),
+                        child: Text(isDark ? 'lightmode' : 'darkmode')),
+                  ]),
+                ],
+              ),
             ));
       });
 }
