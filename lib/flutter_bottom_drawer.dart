@@ -220,7 +220,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
   }
 
   void _setState(void Function() func) {
-    if (widget.height == null) moveState = DrawerState.noHeight;
+    moveState = DrawerState.noHeight;
     func.call();
     rebuild();
   }
