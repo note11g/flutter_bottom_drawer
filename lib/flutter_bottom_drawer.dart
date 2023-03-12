@@ -59,20 +59,10 @@ class _BottomDrawerState extends State<BottomDrawer> {
   Widget build(BuildContext context) {
     if (moveState._needHeightUpdate) {
       _setHeight();
-      if (!widget.autoResizingAnimation) {
-        _disableAutoResizeAnimation();
-      }
+      if (!widget.autoResizingAnimation) _disableAutoResizeAnimation();
     }
 
-    if (lastMoveState != moveState) {
-      lastMoveState = moveState;
-      _notifyMoveStateChanged();
-    }
-
-    if (lastHeight != nowHeight) {
-      lastHeight = nowHeight;
-      _notifyHeightChanged();
-    }
+    _changeWithNotifyStateAndHeight();
 
     return _makePositionedGestureDetector();
   }
@@ -95,6 +85,18 @@ class _BottomDrawerState extends State<BottomDrawer> {
   void _disableAutoResizeAnimation() {
     animation = false;
     _runAfterBuild(() => animation = true);
+  }
+
+  void _changeWithNotifyStateAndHeight() {
+    if (lastMoveState != moveState) {
+      lastMoveState = moveState;
+      _notifyMoveStateChanged();
+    }
+
+    if (lastHeight != nowHeight) {
+      lastHeight = nowHeight;
+      _notifyHeightChanged();
+    }
   }
 
   void _notifyMoveStateChanged() {
@@ -121,7 +123,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
       onVerticalDragUpdate: _onDrag,
       child: _makeAnimatedContainer(),
     );
-    return Positioned(left: 0, right: 0, bottom: 0, child: gestureDetector);
+    return Positioned.fill(top: null, child: gestureDetector);
   }
 
   Widget _makeAnimatedContainer() {
@@ -157,20 +159,38 @@ class _BottomDrawerState extends State<BottomDrawer> {
 
   Widget _makeBodySection() => Expanded(
       flex: moveState.canExpanded ? 1 : (widget.height != null ? 1 : 0),
-      child: widget.builder(moveState, _move, _setState));
+      child: Material(
+          color: Colors.transparent,
+          child: widget.builder(moveState, _move, _setState)));
 
   /* ----- Events ----- */
 
+  DrawerState prevMoveState = DrawerState.noHeight;
+
   void _onDragStart(DragStartDetails details) {
+    prevMoveState = moveState;
     moveState = moveState.nextRunningState;
     animation = false;
     rebuild();
   }
 
+  late _Direction direction;
+
+  bool animationExecuted = false;
+
   void _onDrag(DragUpdateDetails details) {
+    direction = _checkDragDirection(details.delta.dy);
+
+    if (!direction.isNone) {
+      moveState = direction.isUp ? DrawerState.opening : DrawerState.closing;
+    }
+
     final requestHeight = nowHeight - details.delta.dy;
 
-    if (minHeight <= requestHeight && requestHeight <= widget.expandedHeight) {
+    if (requestHeight != nowHeight &&
+        (minHeight <= requestHeight &&
+            requestHeight <= widget.expandedHeight)) {
+      animationExecuted = true;
       nowHeight = requestHeight;
       rebuild();
     }
@@ -179,16 +199,16 @@ class _BottomDrawerState extends State<BottomDrawer> {
   bool? willOpen;
 
   void _onDragEnd(DragEndDetails details) {
-    final dragDirection = _checkDragDirection(details);
-
-    if (dragDirection == _Direction.none) {
+    if (direction.isNone) {
       willOpen = moveState == DrawerState.closing;
     } else {
-      willOpen = dragDirection == _Direction.up;
+      willOpen = direction.isUp;
     }
 
     nowHeight = getExpectHeight(willOpen!);
     animation = true;
+
+    if (!animationExecuted) _prepareNotifyEnd();
 
     rebuild();
   }
@@ -199,13 +219,18 @@ class _BottomDrawerState extends State<BottomDrawer> {
       moveWithControlMethod = false;
       rebuild();
     } else if (willOpen != null) {
-      moveState = DrawerState.getFinishState(willOpen!);
-      willOpen = null;
+      animationExecuted = false;
+      _prepareNotifyEnd();
       _runAfterBuild(() => rebuild());
     }
   }
 
   double getExpectHeight(bool open) => open ? widget.expandedHeight : minHeight;
+
+  void _prepareNotifyEnd() {
+    moveState = DrawerState.getFinishState(willOpen!);
+    willOpen = null;
+  }
 
   /* ----- control methods ----- */
 
@@ -227,10 +252,9 @@ class _BottomDrawerState extends State<BottomDrawer> {
 
   /* ----- utils ----- */
 
-  static _Direction _checkDragDirection(DragEndDetails details) {
-    final velocity = details.velocity.pixelsPerSecond;
-    if (velocity.dy == 0) return _Direction.none;
-    return velocity.dy < 0 ? _Direction.up : _Direction.down;
+  static _Direction _checkDragDirection(double deltaY) {
+    if (deltaY == 0) return _Direction.none;
+    return deltaY < 0 ? _Direction.up : _Direction.down;
   }
 
   static void _runAfterBuild(Function() callback) {
