@@ -42,6 +42,13 @@ class _ExamplePageState extends State<ExamplePage> {
   Color get drawerShadowColor => isDark ? Colors.white24 : Colors.black26;
 
   @override
+  void initState() {
+    isDark =
+        WidgetsBinding.instance.window.platformBrightness == Brightness.dark;
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Stack(children: [
       Positioned.fill(child: _mainSection()),
