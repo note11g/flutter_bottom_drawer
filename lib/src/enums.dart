@@ -1,7 +1,7 @@
 part of flutter_bottom_drawer;
 
 enum DrawerState {
-  noHeight,
+  needUpdate,
   opened,
   closed,
   opening,
@@ -17,8 +17,6 @@ enum DrawerState {
 
   bool get isFinished =>
       this == DrawerState.opened || this == DrawerState.closed;
-
-  bool get _needHeightUpdate => this == DrawerState.noHeight;
 
   DrawerState get nextFinishState {
     assert(isRunning);
@@ -45,6 +43,11 @@ enum _Direction {
   bool get isDown => this == _Direction.down;
 
   bool get isNone => this == _Direction.none;
+
+  bool willOpen({required DrawerState nowState}) {
+    if (isNone) return nowState == DrawerState.opening;
+    return isUp;
+  }
 
   static _Direction fromDragDelta(double deltaY) {
     if (deltaY == 0) return _Direction.none;

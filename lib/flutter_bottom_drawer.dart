@@ -5,6 +5,10 @@ import 'package:flutter_bottom_drawer/src/measure_util.dart';
 
 part 'src/enums.dart';
 
+part 'src/move_controller.dart';
+
+part 'src/height_controller.dart';
+
 class BottomDrawer extends StatefulWidget {
   final double? height;
   final double expandedHeight;
@@ -49,120 +53,108 @@ class BottomDrawer extends StatefulWidget {
 }
 
 class _BottomDrawerState extends State<BottomDrawer> {
-  late double nowHeight;
-  double minHeight = 0, lastHeight = 0;
-  bool animation = true;
-
-  DrawerState moveState = DrawerState.noHeight;
-  DrawerState lastMoveState = DrawerState.noHeight;
-
-  late final _MoveController moveController;
-
   _BottomDrawerState() {
     moveController = _MoveController(
       rebuild: _rebuild,
       runAfterBuild: _runAfterBuild,
       getNowHeight: () => nowHeight,
-      setNowHeight: (height) => nowHeight = height,
       getMoveState: () => moveState,
-      setMoveState: (state) => moveState = state,
-      getMinHeight: () => minHeight,
-      getExpandedHeight: () => widget.expandedHeight,
-      setAnimation: (value) => animation = value,
+      changeHeight: (height) => nowHeight = height,
+      changeMoveState: (state) => moveState = state,
+      useAnimation: (value) => animation = value,
+      expectHeight: _expectHeight,
+      isValidHeight: _isValidHeight,
     );
   }
 
+  late double nowHeight, minHeight;
+
+  DrawerState moveState = DrawerState.needUpdate;
+  bool animation = true;
+
+  double lastHeight = 0;
+  DrawerState lastMoveState = DrawerState.needUpdate;
+
+  late final _MoveController moveController;
+
   @override
   Widget build(BuildContext context) {
-    if (moveState._needHeightUpdate) {
-      _setHeight();
-      if (!widget.autoResizingAnimation) _disableAutoResizeAnimation();
+    if (moveState == DrawerState.needUpdate) {
+      updateHeight();
+
+      if (!widget.autoResizingAnimation) tempDisableAutoResizeAnimation();
     }
 
-    _changeWithNotifyStateAndHeight();
+    changeWithNotifyStateAndHeight();
 
     return _makeDrawer();
   }
 
-  void _setHeight() {
-    minHeight = widget.height ?? _measureDrawerHeight();
+  void updateHeight() {
+    minHeight = widget.height ?? measureDrawerHeight();
     nowHeight = minHeight;
     moveState = DrawerState.closed;
   }
 
-  double _measureDrawerHeight() {
+  double measureDrawerHeight() {
     func1(bool b) {}
     func2(void Function() f) {}
-    return measureWidgetHeight(
-            widget.builder(DrawerState.noHeight, func1, func2),
+    return measureWidgetHeight(widget.builder(DrawerState.closed, func1, func2),
             context: context) +
         widget.handleSectionHeight;
   }
 
-  void _disableAutoResizeAnimation() {
+  void tempDisableAutoResizeAnimation() {
     animation = false;
     _runAfterBuild(() => animation = true);
   }
 
-  void _changeWithNotifyStateAndHeight() {
+  void changeWithNotifyStateAndHeight() {
     if (lastMoveState != moveState) {
       lastMoveState = moveState;
-      _notifyMoveStateChanged();
+      _notifyChanged(value: moveState, notifyFunc: widget.onStateChanged);
     }
 
     if (lastHeight != nowHeight) {
       lastHeight = nowHeight;
-      _notifyHeightChanged();
-    }
-  }
-
-  void _notifyMoveStateChanged() {
-    if (widget.onStateChanged != null) {
-      _runAfterBuild(() => widget.onStateChanged?.call(moveState));
-    }
-  }
-
-  void _notifyHeightChanged() {
-    if (widget.onHeightChanged != null) {
-      _runAfterBuild(() => widget.onHeightChanged?.call(nowHeight));
+      _notifyChanged(value: nowHeight, notifyFunc: widget.onHeightChanged);
     }
   }
 
   /* ----- widget maker ----- */
 
-  Widget _makeDrawer() {
-    final gestureDetector = GestureDetector(
-      onTap: () {
-        /* ignore event */
-      },
-      onVerticalDragStart: moveController.onDragStart,
-      onVerticalDragEnd: moveController.onDragEnd,
-      onVerticalDragUpdate: moveController.onDrag,
-      child: _makeAnimatedContainer(),
-    );
-    return Positioned.fill(top: null, child: gestureDetector);
-  }
+  Widget _makeDrawer() =>
+      Positioned.fill(top: null, child: _makeGestureDetector());
 
-  Widget _makeAnimatedContainer() {
-    final radius = Radius.circular(widget.cornerRadius);
-    final innerContainer = Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.only(topLeft: radius, topRight: radius),
-          color: widget.backgroundColor,
-          boxShadow: widget.shadows,
-        ),
+  Widget _makeGestureDetector() => GestureDetector(
+        onTap: () {
+          /* ignore event */
+        },
+        onVerticalDragStart: moveController.onDragStart,
+        onVerticalDragEnd: moveController.onDragEnd,
+        onVerticalDragUpdate: moveController.onDrag,
+        child: _makeAnimatedContainer(),
+      );
+
+  Widget _makeAnimatedContainer() => AnimatedContainer(
+        onEnd: moveController.onAnimationEnd,
+        height: nowHeight,
+        duration: animation ? widget.resizeAnimationDuration : Duration.zero,
+        curve: Curves.ease,
+        child: _makeDecoratedContainer(),
+      );
+
+  Widget _makeDecoratedContainer() {
+    final decoration = BoxDecoration(
+      borderRadius:
+          BorderRadius.vertical(top: Radius.circular(widget.cornerRadius)),
+      color: widget.backgroundColor,
+      boxShadow: widget.shadows,
+    );
+
+    return Container(
+        decoration: decoration,
         child: Column(children: [_makeHandleSection(), _makeBodySection()]));
-
-    print(nowHeight);
-
-    return AnimatedContainer(
-      onEnd: moveController.onAnimationEnd,
-      height: nowHeight != 0 ? nowHeight : null,
-      //  todo : need test (0인 경우를 Trace 해봐야 함)
-      duration: animation ? widget.resizeAnimationDuration : Duration.zero,
-      curve: Curves.ease,
-      child: innerContainer,
-    );
   }
 
   Widget _makeHandleSection() => Container(
@@ -177,140 +169,40 @@ class _BottomDrawerState extends State<BottomDrawer> {
             borderRadius: BorderRadius.circular(1000)),
       ));
 
-  Widget _makeBodySection() => Expanded(
-      flex: moveState.canExpanded ? 1 : (widget.height != null ? 1 : 0),
-      child: Material(
-          color: Colors.transparent,
-          child: widget.builder(moveState, moveController.move, _setState)));
-
-  void _setState(void Function() func) {
-    moveState = DrawerState.noHeight;
-    setState(func);
+  Widget _makeBodySection() {
+    final needExpand = moveState.canExpanded ? true : isDefinedHeight;
+    return Expanded(
+        flex: needExpand ? 1 : 0,
+        child: Material(
+            color: Colors.transparent,
+            child: widget.builder(moveState, moveController.move, _setState)));
   }
 
-  /* ----- utils ----- */
+  bool get isDefinedHeight => widget.height != null;
+
+  /* ----- widget maker end ----- */
+
+  void _setState(void Function() func) {
+    moveState = DrawerState.needUpdate;
+    setState(func);
+  }
 
   static void _runAfterBuild(Function() callback) {
     WidgetsBinding.instance.addPostFrameCallback((_) => callback());
   }
 
   void _rebuild() => setState(() {});
-}
 
-class _MoveController {
-  final void Function() rebuild;
-  final void Function(Function() callback) runAfterBuild;
-  final double Function() getNowHeight;
-  final void Function(double height) setNowHeight;
-  final DrawerState Function() getMoveState;
-  final void Function(DrawerState state) setMoveState;
-  final double Function() getMinHeight;
-  final double Function() getExpandedHeight;
-  final void Function(bool value) setAnimation;
-
-  double get nowHeight => getNowHeight();
-
-  set nowHeight(double height) => setNowHeight(height);
-
-  DrawerState get moveState => getMoveState();
-
-  set moveState(DrawerState state) => setMoveState(state);
-
-  double get minHeight => getMinHeight();
-
-  double get expandedHeight => getExpandedHeight();
-
-  set animation(bool value) => setAnimation(value);
-
-  _MoveController({
-    required this.rebuild,
-    required this.runAfterBuild,
-    required this.getNowHeight,
-    required this.setNowHeight,
-    required this.getMoveState,
-    required this.setMoveState,
-    required this.getMinHeight,
-    required this.getExpandedHeight,
-    required this.setAnimation,
-  });
-
-  /// used on _move, _onAnimationEnd
-  bool controlWithMoveMethod = false;
-
-  /// used on _onDrag, _onDragEnd
-  late _Direction direction;
-
-  /// used on _onDrag, _onDragEnd, _onAnimationEnd
-  bool animationExecuted = false;
-
-  /// used on _onDragEnd, _onAnimationEnd, _prepareNotifyFinishState
-  bool? willOpen;
-
-  void onDragStart(DragStartDetails details) {
-    animation = false;
-    rebuild();
-  }
-
-  void onDrag(DragUpdateDetails details) {
-    final deltaY = details.delta.dy;
-    final requestHeight = nowHeight - deltaY;
-
-    direction = _Direction.fromDragDelta(deltaY);
-
-    if (requestHeight != nowHeight && _isValidHeight(requestHeight)) {
-      animationExecuted = true;
-      nowHeight = requestHeight;
-
-      if (!direction.isNone) {
-        moveState = DrawerState.getRunningState(isOpening: direction.isUp);
-      }
-
-      rebuild();
-    }
+  static void _notifyChanged<T>({
+    required T value,
+    required Function(T)? notifyFunc,
+  }) {
+    if (notifyFunc != null) _runAfterBuild(() => notifyFunc.call(value));
   }
 
   bool _isValidHeight(double height) =>
-      minHeight <= height && height <= expandedHeight;
+      minHeight <= height && height <= widget.expandedHeight;
 
-  void onDragEnd(DragEndDetails details) {
-    if (direction.isNone) {
-      willOpen = moveState == DrawerState.closing;
-    } else {
-      willOpen = direction.isUp;
-    }
-
-    nowHeight = getExpectHeight(willOpen!);
-    animation = true;
-
-    if (!animationExecuted) _prepareNotifyFinishState();
-
-    rebuild();
-  }
-
-  void onAnimationEnd() {
-    if (controlWithMoveMethod) {
-      moveState = moveState.nextFinishState;
-      controlWithMoveMethod = false;
-      rebuild();
-    } else if (willOpen != null) {
-      animationExecuted = false;
-      _prepareNotifyFinishState();
-      runAfterBuild(() => rebuild());
-    }
-  }
-
-  double getExpectHeight(bool open) => open ? expandedHeight : minHeight;
-
-  void _prepareNotifyFinishState() {
-    moveState = DrawerState.getFinishState(isOpened: willOpen!);
-    willOpen = null;
-  }
-
-  void move(bool open) {
-    animation = true;
-    nowHeight = getExpectHeight(open);
-    moveState = DrawerState.getRunningState(isOpening: open);
-    controlWithMoveMethod = true;
-    rebuild();
-  }
+  double _expectHeight(bool willOpen) =>
+      willOpen ? widget.expandedHeight : minHeight;
 }
