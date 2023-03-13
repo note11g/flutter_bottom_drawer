@@ -20,23 +20,18 @@ enum DrawerState {
 
   bool get _needHeightUpdate => this == DrawerState.noHeight;
 
-  DrawerState get nextRunningState {
-    if (this == DrawerState.closed) return DrawerState.opening;
-    return DrawerState.closing;
-  }
-
   DrawerState get nextFinishState {
     assert(isRunning);
     if (this == DrawerState.opening) return DrawerState.opened;
     return DrawerState.closed;
   }
 
-  static DrawerState getRunningState(bool open) {
-    return open ? DrawerState.opening : DrawerState.closing;
+  static DrawerState getRunningState({required bool isOpening}) {
+    return isOpening ? DrawerState.opening : DrawerState.closing;
   }
 
-  static DrawerState getFinishState(bool open) {
-    return open ? DrawerState.opened : DrawerState.closed;
+  static DrawerState getFinishState({required bool isOpened}) {
+    return isOpened ? DrawerState.opened : DrawerState.closed;
   }
 }
 
@@ -46,6 +41,13 @@ enum _Direction {
   none;
 
   bool get isUp => this == _Direction.up;
+
   bool get isDown => this == _Direction.down;
+
   bool get isNone => this == _Direction.none;
+
+  static _Direction fromDragDelta(double deltaY) {
+    if (deltaY == 0) return _Direction.none;
+    return deltaY < 0 ? _Direction.up : _Direction.down;
+  }
 }
