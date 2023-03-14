@@ -3,12 +3,14 @@ library flutter_bottom_drawer;
 import 'package:flutter/material.dart';
 
 import 'src/enum/direction.dart';
-import 'src/state_controller.dart';
-import 'src/measure_util.dart';
 import 'src/enum/drawer_state.dart';
+import 'src/measure_util.dart';
+import 'src/state_controller.dart';
+import 'src/state_controller_impl.dart';
+
 export 'src/enum/drawer_state.dart';
 
-part 'src/move_controller.dart';
+part 'src/move_handler.dart';
 
 class BottomDrawer extends StatefulWidget {
   final double? height;
@@ -54,31 +56,41 @@ class BottomDrawer extends StatefulWidget {
 }
 
 class _BottomDrawerState extends State<BottomDrawer> {
+  late final StateController controller;
+  late final _MoveHandler moveController;
+
   _BottomDrawerState() {
-    controller = StateController(
+    controller = StateControllerImpl(
       getHeight: () => widget.height,
       getExpandedHeight: () => widget.expandedHeight,
       measureDrawerHeight: _measureDrawerHeight,
     );
 
-    moveController = _MoveController(
+    moveController = _MoveHandler(
       rebuild: _rebuild,
       stateController: controller,
     );
   }
 
-  late final StateController controller;
-  late final _MoveController moveController;
+  double _measureDrawerHeight() {
+    func1(bool b) {}
+    func2(void Function() f) {}
+    final bodyHeight = measureWidgetHeight(
+        widget.builder(DrawerState.closed, func1, func2),
+        context: context);
+    return bodyHeight + widget.handleSectionHeight;
+  }
+
+  /* ----- Build ----- */
 
   @override
   Widget build(BuildContext context) {
     if (controller.drawerState == DrawerState.needUpdate) {
-      controller.updateHeight();
-
+      controller.initializeHeight();
       if (!widget.autoResizingAnimation) tempDisableAutoResizeAnimation();
     }
 
-    changeWithNotifyStateAndHeight();
+    changeStateAndHeightWithNotify();
 
     return _makeDrawer();
   }
@@ -89,23 +101,40 @@ class _BottomDrawerState extends State<BottomDrawer> {
   }
 
   double lastHeight = 0;
-  DrawerState lastMoveState = DrawerState.needUpdate;
+  DrawerState lastDrawerState = DrawerState.needUpdate;
 
-  void changeWithNotifyStateAndHeight() {
-    if (lastMoveState != controller.drawerState) {
-      lastMoveState = controller.drawerState;
-      _notifyChanged(
-          value: controller.drawerState, notifyFunc: widget.onStateChanged);
+  void changeStateAndHeightWithNotify() {
+    final drawerState = controller.drawerState;
+    if (lastDrawerState != drawerState) {
+      lastDrawerState = drawerState;
+      _notifyWithCallback(drawerState, callback: widget.onStateChanged);
     }
 
-    if (lastHeight != controller.nowHeight) {
-      lastHeight = controller.nowHeight;
-      _notifyChanged(
-          value: controller.nowHeight, notifyFunc: widget.onHeightChanged);
+    final nowHeight = controller.nowHeight;
+    if (lastHeight != nowHeight) {
+      lastHeight = nowHeight;
+      _notifyWithCallback(nowHeight, callback: widget.onHeightChanged);
     }
   }
 
-  /* ----- widget maker ----- */
+  /* ----- utils ----- */
+
+  static void _notifyWithCallback<T>(T v, {required Function(T)? callback}) {
+    if (callback != null) _runAfterBuild(() => callback.call(v));
+  }
+
+  static void _runAfterBuild(Function() callback) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => callback());
+  }
+
+  void _setState(void Function() func) {
+    controller.notifyHeightInitializeNeed();
+    setState(func);
+  }
+
+  void _rebuild() => setState(() {});
+
+  /* ----- widget ----- */
 
   Widget _makeDrawer() =>
       Positioned.fill(top: null, child: _makeGestureDetector());
@@ -143,17 +172,19 @@ class _BottomDrawerState extends State<BottomDrawer> {
         child: Column(children: [_makeHandleSection(), _makeBodySection()]));
   }
 
-  Widget _makeHandleSection() => Container(
-      width: double.infinity,
-      height: widget.handleSectionHeight,
-      alignment: Alignment.center,
-      child: Container(
-        width: widget.handleSize.width,
-        height: widget.handleSize.height,
-        decoration: BoxDecoration(
-            color: widget.handleColor,
-            borderRadius: BorderRadius.circular(1000)),
-      ));
+  Widget _makeHandleSection() {
+    final handle = Container(
+      width: widget.handleSize.width,
+      height: widget.handleSize.height,
+      decoration: BoxDecoration(
+          color: widget.handleColor, borderRadius: BorderRadius.circular(1000)),
+    );
+    return Container(
+        width: double.infinity,
+        height: widget.handleSectionHeight,
+        alignment: Alignment.center,
+        child: handle);
+  }
 
   Widget _makeBodySection() {
     final needExpand =
@@ -167,33 +198,4 @@ class _BottomDrawerState extends State<BottomDrawer> {
   }
 
   bool get isDefinedHeight => widget.height != null;
-
-  /* ----- widget maker end ----- */
-
-  void _setState(void Function() func) {
-    controller.notifyUpdatedNeeded();
-    setState(func);
-  }
-
-  static void _runAfterBuild(Function() callback) {
-    WidgetsBinding.instance.addPostFrameCallback((_) => callback());
-  }
-
-  void _rebuild() => setState(() {});
-
-  static void _notifyChanged<T>({
-    required T value,
-    required Function(T)? notifyFunc,
-  }) {
-    if (notifyFunc != null) _runAfterBuild(() => notifyFunc.call(value));
-  }
-
-  double _measureDrawerHeight() {
-    func1(bool b) {}
-    func2(void Function() f) {}
-    final bodyHeight = measureWidgetHeight(
-        widget.builder(DrawerState.closed, func1, func2),
-        context: context);
-    return bodyHeight + widget.handleSectionHeight;
-  }
 }

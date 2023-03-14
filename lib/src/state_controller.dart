@@ -1,85 +1,36 @@
-import 'package:flutter_bottom_drawer/src/enum/direction.dart';
-import 'package:flutter_bottom_drawer/src/enum/drawer_state.dart';
+import 'enum/direction.dart';
+import 'enum/drawer_state.dart';
 
-class StateController {
-  final double? Function() _getHeight;
-  final double Function() _getExpandedHeight;
-  final double Function() _measureDrawerHeight;
+mixin StateController {
+  double get nowHeight;
 
-  StateController({
-    required double? Function() getHeight,
-    required double Function() getExpandedHeight,
-    required double Function() measureDrawerHeight,
-  })  : _getHeight = getHeight,
-        _getExpandedHeight = getExpandedHeight,
-        _measureDrawerHeight = measureDrawerHeight;
+  DrawerState get drawerState;
 
-  late double _nowHeight;
-  late double _minHeight;
+  // initialize height
 
-  double get nowHeight => _nowHeight;
+  void initializeHeight();
 
-  DrawerState _drawerState = DrawerState.needUpdate;
+  void notifyHeightInitializeNeed();
 
-  DrawerState get drawerState => _drawerState;
+  // animation
 
-  bool _animationEnable = true;
+  bool get animationEnabled;
 
-  bool get animationEnabled => _animationEnable;
+  void enableAnimation();
 
-  void prepareMove({required bool open}) {
-    _movingState(opening: open);
-    _changeHeight(_targetHeight(open));
-    enableAnimation();
-  }
+  void disableAnimation();
 
-  void updateHeight() {
-    _setMinHeight(_getHeight() ?? _measureDrawerHeight());
-    _changeHeight(_minHeight);
-    _drawerState = DrawerState.closed;
-  }
+  // move (with notify)
 
-  void _setMinHeight(double height) => _minHeight = height;
+  void manualMove({required double height, required Direction direction});
 
-  void _changeHeight(double height) => _nowHeight = height;
+  bool canManualMove(double height, Direction direction);
 
-  void _movingState({required bool opening}) {
-    _drawerState = DrawerState.getRunningState(isOpening: opening);
-  }
+  void prepareAutoMove();
 
-  double _targetHeight(bool open) => open ? _getExpandedHeight() : _minHeight;
+  void requestAutoMove({required bool open});
 
-  bool isValidHeight(double height) =>
-      _minHeight < height && height < _getExpandedHeight();
+  bool get isRequestedMove;
 
-  void enableAnimation() => _animationEnable = true;
-
-  void disableAnimation() => _animationEnable = false;
-
-  void finishedState() {
-    _drawerState = drawerState.nextFinishState;
-  }
-
-  void notifyUpdatedNeeded() {
-    _drawerState = DrawerState.needUpdate;
-  }
-
-  void dragUpdateWhenNeedUpdate({
-    required double height,
-    required Direction direction,
-    required Function() onUpdated,
-  }) {
-    if (_needDragUpdate(height, direction)) {
-      _dragUpdate(height, direction);
-      onUpdated.call();
-    }
-  }
-
-  bool _needDragUpdate(double height, Direction direction) =>
-      !direction.isNone && isValidHeight(height);
-
-  void _dragUpdate(double height, Direction direction) {
-    _changeHeight(height);
-    _movingState(opening: direction.isUp);
-  }
+  void finishMove();
 }

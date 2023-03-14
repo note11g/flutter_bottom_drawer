@@ -1,17 +1,17 @@
 part of flutter_bottom_drawer;
 
-class _MoveController {
+class _MoveHandler {
   final void Function() rebuild;
 
   final StateController stateController;
 
-  _MoveController({
+  _MoveHandler({
     required this.rebuild,
     required this.stateController,
   });
 
   void onDragStart(DragStartDetails details) {
-    stateController.disableAnimation();
+    stateController.prepareAutoMove();
     rebuild();
   }
 
@@ -20,11 +20,10 @@ class _MoveController {
     final requestHeight = stateController.nowHeight - deltaY;
     final direction = Direction.fromDragDelta(deltaY);
 
-    stateController.dragUpdateWhenNeedUpdate(
-      height: requestHeight,
-      direction: direction,
-      onUpdated: rebuild,
-    );
+    if (stateController.canManualMove(requestHeight, direction)) {
+      stateController.manualMove(height: requestHeight, direction: direction);
+      rebuild();
+    }
   }
 
   void onDragEnd(DragEndDetails details) {
@@ -39,19 +38,16 @@ class _MoveController {
   }
 
   void move(bool open) {
-    stateController.prepareMove(open: open);
+    stateController.requestAutoMove(open: open);
     rebuild();
   }
 
   void onAnimationEnd() {
     if (stateController.drawerState.isFinished) return;
 
-    if (isDragEnded) {
-      stateController.finishedState();
+    if (stateController.isRequestedMove) {
+      stateController.finishMove();
       rebuild();
     }
   }
-
-  /// 아직 드래그가 끝나지 않은 경우면, animation은 disabled 되어있다.
-  bool get isDragEnded => stateController.animationEnabled;
 }
