@@ -1,3 +1,8 @@
+## 0.0.3
+- fix #1, #2
+- change example
+- refactoring code
+
 ## 0.0.2
 - fix unexpected animation transition issue
 - add onStateChanged, onHeightChanged events
