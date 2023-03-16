@@ -2,6 +2,8 @@ import 'enum/direction.dart';
 import 'enum/drawer_state.dart';
 
 mixin StateController {
+  bool get needHeightInitialize;
+
   double get nowHeight;
 
   DrawerState get drawerState;
