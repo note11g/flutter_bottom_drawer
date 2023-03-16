@@ -23,7 +23,7 @@ class ExamplePage extends StatefulWidget {
 }
 
 class _ExamplePageState extends State<ExamplePage> {
-  late Function(bool) moveFunc;
+  late DrawerMoveController drawerController;
   double drawerHeight = 0;
   DrawerState? drawerState;
   bool isDark = false;
@@ -52,7 +52,8 @@ class _ExamplePageState extends State<ExamplePage> {
   Widget build(BuildContext context) {
     return Stack(children: [
       Positioned.fill(child: _mainSection()),
-      _bottomDrawer(),
+      // _bottomDrawer(),
+      _bottomDrawerWithListView(),
     ]);
   }
 
@@ -81,7 +82,7 @@ class _ExamplePageState extends State<ExamplePage> {
           ));
 
   void bottomDrawerMove() {
-    moveFunc.call(drawerState != DrawerState.opened);
+    drawerController.move(drawerState != DrawerState.opened);
     setState(() {});
   }
 
@@ -98,15 +99,14 @@ class _ExamplePageState extends State<ExamplePage> {
           color: drawerShadowColor,
         )
       ],
+      onReady: (controller) => drawerController = controller,
       onStateChanged: (state) {
         setState(() => drawerState = state);
       },
       onHeightChanged: (height) {
         setState(() => drawerHeight = height);
       },
-      builder: (state, move, setStateOnDrawer) {
-        moveFunc = move;
-
+      builder: (state, setState, context) {
         return SizedBox(
             height: expanded ? 300 : 200,
             child: Center(
@@ -129,5 +129,34 @@ class _ExamplePageState extends State<ExamplePage> {
                 ],
               ),
             ));
+      });
+
+  late Function(Function()) setStateOnDrawer;
+
+  Widget _bottomDrawerWithListView() => BottomDrawer(
+      height: 300,
+      expandedHeight: 500,
+      handleColor: drawerHandleColor,
+      backgroundColor: drawerBackgroundColor,
+      onReady: (controller) => drawerController = controller,
+      onStateChanged: (state) => setState(() => drawerState = state),
+      onHeightChanged: (height) => setState(() => drawerHeight = height),
+      builder: (state, setState, context) {
+        setStateOnDrawer = setState;
+        return CustomScrollView(
+            physics: state == DrawerState.opened
+                ? const BouncingScrollPhysics()
+                : const NeverScrollableScrollPhysics(),
+            slivers: [
+          SliverList(
+              delegate: SliverChildBuilderDelegate(
+            (context, index) => ListTile(
+              onTap: () {},
+              title: Text(index == 0 ? state.toString() : 'item $index', style: TextStyle(color: textColor)),
+              subtitle: Text('subtitle $index', style: TextStyle(color: textColor.withOpacity(0.5))),
+            ),
+            childCount: 100,
+          )),
+        ]);
       });
 }

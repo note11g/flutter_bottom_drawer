@@ -2,15 +2,15 @@ library flutter_bottom_drawer;
 
 import 'package:flutter/material.dart';
 
-import 'src/enum/direction.dart';
 import 'src/enum/drawer_state.dart';
 import 'src/measure_util.dart';
-import 'src/state_controller.dart';
-import 'src/state_controller_impl.dart';
+import 'src/state/state_controller.dart';
+import 'src/state/state_controller_impl.dart';
+import 'src/move/move_controller.dart';
+import 'src/move/move_handler.dart';
 
 export 'src/enum/drawer_state.dart';
-
-part 'src/move_handler.dart';
+export 'src/move/move_controller.dart';
 
 class BottomDrawer extends StatefulWidget {
   final double? height;
@@ -28,8 +28,10 @@ class BottomDrawer extends StatefulWidget {
   final void Function(double height)? onHeightChanged;
   final void Function(DrawerState state)? onStateChanged;
 
-  final Widget Function(DrawerState state, void Function(bool open) move,
-      void Function(void Function()) setState) builder;
+  final void Function(DrawerMoveController controller)? onReady;
+
+  final Widget Function(DrawerState state,
+      void Function(void Function()) setState, BuildContext context) builder;
 
   const BottomDrawer({
     Key? key,
@@ -43,6 +45,7 @@ class BottomDrawer extends StatefulWidget {
     this.cornerRadius = 8,
     this.autoResizingAnimation = false,
     this.resizeAnimationDuration = const Duration(milliseconds: 300),
+    this.onReady,
     this.onHeightChanged,
     this.onStateChanged,
     required this.builder,
@@ -56,29 +59,26 @@ class BottomDrawer extends StatefulWidget {
 }
 
 class _BottomDrawerState extends State<BottomDrawer> {
-  late final StateController controller;
-  late final _MoveHandler moveController;
-
-  _BottomDrawerState() {
-    controller = StateControllerImpl(
-      getHeight: () => widget.height,
-      getExpandedHeight: () => widget.expandedHeight,
-      measureDrawerHeight: _measureDrawerHeight,
-    );
-
-    moveController = _MoveHandler(
-      rebuild: _rebuild,
-      stateController: controller,
-    );
-  }
+  late final StateController controller = StateControllerImpl(
+    getHeight: () => widget.height,
+    getExpandedHeight: () => widget.expandedHeight,
+    measureDrawerHeight: _measureDrawerHeight,
+  );
+  late final MoveHandler moveController =
+      MoveHandler(rebuild: _rebuild, stateController: controller);
 
   double _measureDrawerHeight() {
-    func1(bool b) {}
-    func2(void Function() f) {}
+    func1(void Function() f) {}
     final bodyHeight = measureWidgetHeight(
-        widget.builder(DrawerState.closed, func1, func2),
+        widget.builder(DrawerState.closed, func1, context),
         context: context);
     return bodyHeight + widget.handleSectionHeight;
+  }
+
+  @override
+  void initState() {
+    widget.onReady?.call(moveController);
+    super.initState();
   }
 
   /* ----- Build ----- */
@@ -191,10 +191,14 @@ class _BottomDrawerState extends State<BottomDrawer> {
         controller.drawerState.canExpanded ? true : isDefinedHeight;
     return Expanded(
         flex: needExpand ? 1 : 0,
-        child: Material(
-            color: Colors.transparent,
-            child: widget.builder(
-                controller.drawerState, moveController.move, _setState)));
+        child: MediaQuery.removePadding(
+          context: context,
+          removeTop: true,
+          child: Material(
+              color: Colors.transparent,
+              child:
+                  widget.builder(controller.drawerState, _setState, context)),
+        ));
   }
 
   bool get isDefinedHeight => widget.height != null;

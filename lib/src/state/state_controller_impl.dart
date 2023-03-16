@@ -1,5 +1,5 @@
-import 'enum/direction.dart';
-import 'enum/drawer_state.dart';
+import '../enum/direction.dart';
+import '../enum/drawer_state.dart';
 import 'state_controller.dart';
 
 class StateControllerImpl with StateController {
