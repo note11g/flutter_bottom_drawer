@@ -85,7 +85,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    if (controller.drawerState == DrawerState.needUpdate) {
+    if (controller.needHeightInitialize) {
       controller.initializeHeight();
       if (!widget.autoResizingAnimation) tempDisableAutoResizeAnimation();
     }
@@ -100,8 +100,8 @@ class _BottomDrawerState extends State<BottomDrawer> {
     _runAfterBuild(() => controller.enableAnimation());
   }
 
-  double lastHeight = 0;
-  DrawerState lastDrawerState = DrawerState.needUpdate;
+  double? lastHeight;
+  DrawerState? lastDrawerState;
 
   void changeStateAndHeightWithNotify() {
     final drawerState = controller.drawerState;
