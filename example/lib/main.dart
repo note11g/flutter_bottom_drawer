@@ -143,20 +143,16 @@ class _ExamplePageState extends State<ExamplePage> {
       onHeightChanged: (height) => setState(() => drawerHeight = height),
       builder: (state, setState, context) {
         setStateOnDrawer = setState;
-        return CustomScrollView(
+        return ListView.builder(
             physics: state == DrawerState.opened
                 ? const BouncingScrollPhysics()
                 : const NeverScrollableScrollPhysics(),
-            slivers: [
-          SliverList(
-              delegate: SliverChildBuilderDelegate(
-            (context, index) => ListTile(
+            itemBuilder: (context, index) => ListTile(
               onTap: () {},
               title: Text(index == 0 ? state.toString() : 'item $index', style: TextStyle(color: textColor)),
               subtitle: Text('subtitle $index', style: TextStyle(color: textColor.withOpacity(0.5))),
             ),
-            childCount: 100,
-          )),
-        ]);
+            itemCount: 100,
+        );
       });
 }
