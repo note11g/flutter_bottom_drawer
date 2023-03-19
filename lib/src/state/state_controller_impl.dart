@@ -1,5 +1,5 @@
-import 'enum/direction.dart';
-import 'enum/drawer_state.dart';
+import '../enum/direction.dart';
+import '../enum/drawer_state.dart';
 import 'state_controller.dart';
 
 class StateControllerImpl with StateController {
@@ -16,12 +16,20 @@ class StateControllerImpl with StateController {
         _measureDrawerHeight = measureDrawerHeight;
 
   late double _nowHeight;
-  late double _minHeight;
-  DrawerState _drawerState = DrawerState.needUpdate;
+  double _minHeight = -1;
+  DrawerState _drawerState = DrawerState.closed;
+  bool _needHeightInitialize = true;
   bool _animationEnable = true;
 
   @override
   double get nowHeight => _nowHeight;
+
+  double get minHeight => _minHeight;
+
+  double get expandedHeight => _getExpandedHeight();
+
+  @override
+  bool get needHeightInitialize => _needHeightInitialize;
 
   @override
   DrawerState get drawerState => _drawerState;
@@ -69,13 +77,14 @@ class StateControllerImpl with StateController {
 
   @override
   void initializeHeight() {
-    _minHeight = _getHeight() ?? _measureDrawerHeight();
-    _nowHeight = _minHeight;
-    _drawerState = DrawerState.closed;
+    assert(needHeightInitialize);
+    _updateMinHeight();
+    if (drawerState == DrawerState.closed) _updateHeight(minHeight);
+    _notifyHeightInitialized();
   }
 
   void _updateTargetHeight({required bool open}) {
-    final targetHeight = open ? _getExpandedHeight() : _minHeight;
+    final targetHeight = open ? expandedHeight : minHeight;
     _updateHeight(targetHeight);
   }
 
@@ -83,11 +92,19 @@ class StateControllerImpl with StateController {
     _nowHeight = height;
   }
 
-  /* ----- notify now state ----- */
+  void _updateMinHeight() {
+    _minHeight = _getHeight() ?? _measureDrawerHeight();
+  }
+
+  /* ----- notify ----- */
 
   @override
   void notifyHeightInitializeNeed() {
-    _drawerState = DrawerState.needUpdate;
+    _needHeightInitialize = true;
+  }
+
+  void _notifyHeightInitialized() {
+    _needHeightInitialize = false;
   }
 
   void _notifyNowMoving({required bool opening}) {
@@ -98,12 +115,12 @@ class StateControllerImpl with StateController {
     _drawerState = drawerState.nextFinishState;
   }
 
-  // check can move
+  /* ----- check can move ----- */
 
   @override
   bool canManualMove(double height, Direction direction) =>
       !direction.isNone && _isValidHeight(height);
 
   bool _isValidHeight(double height) =>
-      _minHeight < height && height < _getExpandedHeight();
+      minHeight < height && height < expandedHeight;
 }

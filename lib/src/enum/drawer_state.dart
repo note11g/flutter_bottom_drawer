@@ -1,5 +1,4 @@
 enum DrawerState {
-  needUpdate,
   opened,
   closed,
   opening,
@@ -23,16 +22,12 @@ enum DrawerState {
   }
 
   void when({
-    Function()? needUpdate,
     Function()? opened,
     Function()? closed,
     Function()? opening,
     Function()? closing,
   }) {
     switch (this) {
-      case DrawerState.needUpdate:
-        needUpdate?.call();
-        break;
       case DrawerState.opened:
         opened?.call();
         break;

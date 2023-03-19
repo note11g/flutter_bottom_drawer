@@ -1,3 +1,7 @@
+## 0.0.4
+- change spec (add onReady, DrawerMoveController, builder.context and remove builder.move)
+- fix : fix a "forced change state to `DrawerState.closed`" when called builder.setState
+
 ## 0.0.3
 - fix #1, #2
 - change example

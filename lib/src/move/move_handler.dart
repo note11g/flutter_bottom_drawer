@@ -1,11 +1,15 @@
-part of flutter_bottom_drawer;
+import 'package:flutter/material.dart';
 
-class _MoveHandler {
+import '../enum/direction.dart';
+import '../state/state_controller.dart';
+import 'move_controller.dart';
+
+class MoveHandler with DrawerMoveController {
   final void Function() rebuild;
 
   final StateController stateController;
 
-  _MoveHandler({
+  MoveHandler({
     required this.rebuild,
     required this.stateController,
   });
@@ -37,6 +41,7 @@ class _MoveHandler {
     rebuild();
   }
 
+  @override
   void move(bool open) {
     stateController.requestAutoMove(open: open);
     rebuild();
