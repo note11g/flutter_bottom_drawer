@@ -144,15 +144,17 @@ class _ExamplePageState extends State<ExamplePage> {
       builder: (state, setState, context) {
         setStateOnDrawer = setState;
         return ListView.builder(
-            physics: state == DrawerState.opened
-                ? const BouncingScrollPhysics()
-                : const NeverScrollableScrollPhysics(),
-            itemBuilder: (context, index) => ListTile(
-              onTap: () {},
-              title: Text(index == 0 ? state.toString() : 'item $index', style: TextStyle(color: textColor)),
-              subtitle: Text('subtitle $index', style: TextStyle(color: textColor.withOpacity(0.5))),
-            ),
-            itemCount: 100,
+          physics: state == DrawerState.opened
+              ? const BouncingScrollPhysics()
+              : const NeverScrollableScrollPhysics(),
+          itemBuilder: (context, index) => ListTile(
+            onTap: () {},
+            title: Text(index == 0 ? state.toString() : 'item $index',
+                style: TextStyle(color: textColor)),
+            subtitle: Text('subtitle $index',
+                style: TextStyle(color: textColor.withOpacity(0.5))),
+          ),
+          itemCount: 100,
         );
       });
 }
