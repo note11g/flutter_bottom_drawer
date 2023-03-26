@@ -68,10 +68,8 @@ class _BottomDrawerState extends State<BottomDrawer> {
       MoveHandler(rebuild: _rebuild, stateController: controller);
 
   double _measureDrawerHeight() {
-    func1(void Function() f) {}
-    final bodyHeight = measureWidgetHeight(
-        widget.builder(DrawerState.closed, func1, context),
-        context: context);
+    final bodyHeight =
+        measureWidgetHeight(_makeBody(isMock: true), context: context);
     return bodyHeight + widget.handleSectionHeight;
   }
 
@@ -189,16 +187,21 @@ class _BottomDrawerState extends State<BottomDrawer> {
   Widget _makeBodySection() {
     final needExpand =
         controller.drawerState.canExpanded ? true : isDefinedHeight;
-    return Expanded(
-        flex: needExpand ? 1 : 0,
-        child: MediaQuery.removePadding(
-          context: context,
-          removeTop: true,
-          child: Material(
-              color: Colors.transparent,
-              child:
-                  widget.builder(controller.drawerState, _setState, context)),
-        ));
+    return Expanded(flex: needExpand ? 1 : 0, child: _makeBody());
+  }
+
+  Widget _makeBody({bool isMock = false}) {
+    return MediaQuery.removePadding(
+      context: context,
+      removeTop: true,
+      child: Material(
+          // color: Colors.transparent,
+          type: MaterialType.transparency,
+          child: widget.builder(
+              isMock ? DrawerState.closed : controller.drawerState,
+              isMock ? (void Function() f) {} : _setState,
+              context)),
+    );
   }
 
   bool get isDefinedHeight => widget.height != null;
