@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter/rendering.dart';
 
 double measureWidgetHeight(Widget widget, {required BuildContext context}) {
@@ -18,11 +17,14 @@ double measureWidgetHeight(Widget widget, {required BuildContext context}) {
 
   final buildOwner = BuildOwner(focusManager: FocusManager());
   final renderToWidget = RenderObjectToWidgetAdapter(
-    container: renderBoundary,
-    child: Theme(
-        data: Theme.of(context),
-        child: Directionality(textDirection: TextDirection.ltr, child: widget)),
-  ).attachToRenderTree(buildOwner);
+          container: renderBoundary,
+          child: Theme(
+              data: Theme.of(context),
+              child: Localizations.override(
+                  context: context,
+                  child: Directionality(
+                      textDirection: TextDirection.ltr, child: widget))))
+      .attachToRenderTree(buildOwner);
 
   buildOwner
     ..buildScope(renderToWidget)

@@ -117,21 +117,17 @@ class _ExamplePageState extends State<ExamplePage> {
             padding: EdgeInsets.symmetric(
                 horizontal: 16, vertical: expanded ? 128 : 48),
             child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("state: $state", style: TextStyle(color: textColor)),
-                  const SizedBox(height: 8),
-                  Row(mainAxisSize: MainAxisSize.min, children: [
-                    ElevatedButton(
-                        onPressed: () {
-                          setStateOnDrawer(() => expanded = !expanded);
-                        },
-                        child: Text(expanded ? 'flip' : 'expand')),
-                  ]),
-                ],
-              ),
-            ));
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text("state: $state", style: TextStyle(color: textColor)),
+              const SizedBox(height: 8),
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                ElevatedButton(
+                    onPressed: () {
+                      setStateOnDrawer(() => expanded = !expanded);
+                    },
+                    child: Text(expanded ? 'flip' : 'expand')),
+              ])
+            ])));
       });
 
   late Function(Function()) setStateOnDrawer;
