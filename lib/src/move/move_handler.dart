@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../enum/direction.dart';
+import '../enum/drawer_state.dart';
 import '../state/state_controller.dart';
 import 'move_controller.dart';
 
@@ -55,4 +56,7 @@ class MoveHandler with DrawerMoveController {
       rebuild();
     }
   }
+
+  @override
+  DrawerState get nowState => stateController.drawerState;
 }
