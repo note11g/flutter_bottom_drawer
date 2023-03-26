@@ -10,8 +10,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-        debugShowCheckedModeBanner: false, home: ExamplePage());
+    return MaterialApp(
+        theme: ThemeData(
+            textTheme: const TextTheme(
+          bodyMedium: TextStyle(fontSize: 16),
+        )),
+        debugShowCheckedModeBanner: false,
+        home: const ExamplePage());
   }
 }
 
@@ -52,8 +57,8 @@ class _ExamplePageState extends State<ExamplePage> {
   Widget build(BuildContext context) {
     return Stack(children: [
       Positioned.fill(child: _mainSection()),
-      // _bottomDrawer(),
-      _bottomDrawerWithListView(),
+      _bottomDrawer(),
+      // _bottomDrawerWithListView(),
     ]);
   }
 
@@ -107,8 +112,10 @@ class _ExamplePageState extends State<ExamplePage> {
         setState(() => drawerHeight = height);
       },
       builder: (state, setState, context) {
-        return SizedBox(
-            height: expanded ? 300 : 200,
+        setStateOnDrawer = setState;
+        return Container(
+            padding: EdgeInsets.symmetric(
+                horizontal: 16, vertical: expanded ? 128 : 48),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -121,10 +128,6 @@ class _ExamplePageState extends State<ExamplePage> {
                           setStateOnDrawer(() => expanded = !expanded);
                         },
                         child: Text(expanded ? 'flip' : 'expand')),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                        onPressed: () => setState(() => isDark = !isDark),
-                        child: Text(isDark ? 'lightmode' : 'darkmode')),
                   ]),
                 ],
               ),
