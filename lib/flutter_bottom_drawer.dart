@@ -12,24 +12,62 @@ import 'src/move/move_handler.dart';
 export 'src/enum/drawer_state.dart';
 export 'src/move/move_controller.dart';
 
+/// widget that can be dragged up and down like a drawer
 class BottomDrawer extends StatefulWidget {
+  /// closed height of the drawer.
+  /// if null, the height is set to the height of the child widget.
   final double? height;
+
+  /// expanded height of the drawer.
   final double expandedHeight;
+
+  /// background color of the drawer.
+  /// default is white.
   final Color backgroundColor;
+
+  /// color of the handle.
+  /// default is #E0E0E0
   final Color handleColor;
+
+  /// shadows of the drawer.
+  /// default is [defaultShadow].
   final List<BoxShadow>? shadows;
+
+  /// height of the handle section.
+  /// default is 28.
   final double handleSectionHeight;
+
+  /// size of the handle.
+  /// default is 40x4.
   final Size handleSize;
+
+  /// corner radius of the drawer.
+  /// default is 8.
   final double cornerRadius;
 
+  /// if true, the drawer will be auto resized with animation when the height is changed. (when height is null only)
+  /// it's cause overflow. so if you want to use this, [autoResizingAnimation]=[kReleaseMode] is recommended.
+  /// default is false.
   final bool autoResizingAnimation;
+
+  /// duration of the auto resizing animation.
+  /// default is 300ms.
   final Duration resizeAnimationDuration;
 
+  /// callback when the height is changed.
   final void Function(double height)? onHeightChanged;
+
+  /// callback when the state is changed.
   final void Function(DrawerState state)? onStateChanged;
 
+  /// callback when the drawer is ready.
+  /// you can use [DrawerMoveController] to control the drawer.
   final void Function(DrawerMoveController controller)? onReady;
 
+  /// builder of the drawer.
+  /// [DrawerState] is the current state of the drawer.
+  /// [setState] is the setState function of the drawer. it can be used to rebuild the drawer. (and, when [height]=null, height will be remeasured)
+  /// [context] is the context of the drawer.
   final Widget Function(DrawerState state,
       void Function(void Function()) setState, BuildContext context) builder;
 
@@ -195,7 +233,6 @@ class _BottomDrawerState extends State<BottomDrawer> {
       context: context,
       removeTop: true,
       child: Material(
-          // color: Colors.transparent,
           type: MaterialType.transparency,
           child: widget.builder(
               isMock ? DrawerState.closed : controller.drawerState,
