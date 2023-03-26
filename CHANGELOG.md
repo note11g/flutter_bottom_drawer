@@ -1,3 +1,7 @@
+## 0.0.6
+- add DrawerMoveController.autoMove
+- add some api reference description
+
 ## 0.0.5
 - fix : fix #10, #11
 - add DrawerMoveController.nowState

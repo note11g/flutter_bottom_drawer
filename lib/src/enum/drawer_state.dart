@@ -1,3 +1,4 @@
+/// State of [BottomDrawer].
 enum DrawerState {
   /// Drawer is fully opened.
   opened,
