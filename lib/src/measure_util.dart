@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 double measureWidgetHeight(Widget widget, {required BuildContext context}) {
-  final window = WidgetsBinding.instance.window;
+  final view = View.of(context);
 
   final renderBoundary = RenderRepaintBoundary();
   final renderView = _CustomRenderView(
-    window: window,
+    view: view,
     configuration: ViewConfiguration(
-        size: window.physicalSize, devicePixelRatio: window.devicePixelRatio),
+        size: view.physicalSize, devicePixelRatio: view.devicePixelRatio),
     child: renderBoundary,
   );
 
@@ -49,7 +49,7 @@ class _CustomRenderView extends RenderView {
   _CustomRenderView({
     super.child,
     required super.configuration,
-    required super.window,
+    required super.view,
   });
 
   @override
