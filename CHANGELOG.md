@@ -1,3 +1,6 @@
+## 0.0.7
+- support flutter 3.10.0
+
 ## 0.0.6
 - add DrawerMoveController.autoMove
 - add some api reference description
