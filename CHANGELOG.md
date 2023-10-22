@@ -1,3 +1,6 @@
+## 0.0.8
+- support mediaQueryData Dependent Widget
+
 ## 0.0.7
 - support flutter 3.10.0
 

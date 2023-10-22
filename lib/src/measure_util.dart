@@ -18,12 +18,14 @@ double measureWidgetHeight(Widget widget, {required BuildContext context}) {
   final buildOwner = BuildOwner(focusManager: FocusManager());
   final renderToWidget = RenderObjectToWidgetAdapter(
           container: renderBoundary,
-          child: Theme(
-              data: Theme.of(context),
-              child: Localizations.override(
-                  context: context,
-                  child: Directionality(
-                      textDirection: TextDirection.ltr, child: widget))))
+          child: MediaQuery(
+              data: MediaQueryData.fromView(view),
+              child: Theme(
+                  data: Theme.of(context),
+                  child: Localizations.override(
+                      context: context,
+                      child: Directionality(
+                          textDirection: TextDirection.ltr, child: widget)))))
       .attachToRenderTree(buildOwner);
 
   buildOwner
@@ -39,8 +41,8 @@ double measureWidgetHeight(Widget widget, {required BuildContext context}) {
   final constraints =
       BoxConstraints(maxWidth: width, maxHeight: double.infinity);
 
-  renderView.layout(constraints);
-  renderToWidget.renderObject.layout(constraints);
+  renderView.layout(constraints, parentUsesSize: true);
+  renderToWidget.renderObject.layout(constraints, parentUsesSize: true);
 
   return renderToWidget.renderObject.paintBounds.size.height;
 }
