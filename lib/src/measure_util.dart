@@ -44,7 +44,14 @@ double measureWidgetHeight(Widget widget, {required BuildContext context}) {
   renderView.layout(constraints, parentUsesSize: true);
   renderToWidget.renderObject.layout(constraints, parentUsesSize: true);
 
-  return renderToWidget.renderObject.paintBounds.size.height;
+  final measuredSize = renderToWidget.renderObject.paintBounds.size;
+
+  final emptyRenderToWidget =
+      RenderObjectToWidgetAdapter(container: renderBoundary);
+  renderToWidget.update(emptyRenderToWidget);
+  buildOwner.finalizeTree();
+
+  return measuredSize.height;
 }
 
 class _CustomRenderView extends RenderView {
