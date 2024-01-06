@@ -1,3 +1,6 @@
+## 0.1.0
+- fix : fix bug (auto measure widget not disposed)
+
 ## 0.0.8
 - support mediaQueryData Dependent Widget
 
