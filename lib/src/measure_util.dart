@@ -7,8 +7,7 @@ double measureWidgetHeight(Widget widget, {required BuildContext context}) {
   final renderBoundary = RenderRepaintBoundary();
   final renderView = _CustomRenderView(
     view: view,
-    configuration: ViewConfiguration(
-        size: view.physicalSize, devicePixelRatio: view.devicePixelRatio),
+    configuration: ViewConfiguration.fromView(view),
     child: renderBoundary,
   );
 
